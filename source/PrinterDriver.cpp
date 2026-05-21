@@ -50,6 +50,11 @@ THE SOFTWARE.
 	#pragma mark [Constructor & destructor]
 #endif
 
+// KEVIN DEBUG
+#define TRACE(fmt, ...) \
+	syslog(LOG_INFO, "PrinterDriver[t=%" B_PRId32 "]: " fmt, \
+		find_thread(NULL), ##__VA_ARGS__)
+
 // Constructor & destructor
 // ------------------------
 
@@ -93,6 +98,7 @@ PrinterDriver::PrintJob
 	BMessage 	*jobMsg			// job message
 	)
 {
+	TRACE("KEVIN - PrintJob() - entered method");
 	print_file_header	pfh;
 	status_t			status;
 	BMessage 			*msg;
@@ -106,38 +112,63 @@ PrinterDriver::PrintJob
 	fJobMsg			= jobMsg;
 
 	if (!fJobFile || !fPrinterNode) 
-		return B_ERROR;
-
-	if (fPrintTransport.Open(fPrinterNode) != B_OK) {
+	{
+		TRACE("KEVIN - PrintJob() - first return error");
 		return B_ERROR;
 	}
-	if (fPrintTransport.IsPrintToFileCanceled()) {
+
+	TRACE("KEVIN - PrintJob() - 2");
+	if (fPrintTransport.Open(fPrinterNode) != B_OK) 
+	{
+		TRACE("KEVIN - PrintJob() - second return error");
+		return B_ERROR;
+	}
+	
+	TRACE("KEVIN - PrintJob() - 3");
+	if (fPrintTransport.IsPrintToFileCanceled()) 
+	{
+		TRACE("KEVIN - PrintJob() - third return error");
 		return B_OK;
 	}
 
+	TRACE("KEVIN - PrintJob() - 4");
 	// read print file header	
 	fJobFile->Seek(0, SEEK_SET);
+	TRACE("KEVIN - PrintJob() - 5");
 	fJobFile->Read(&pfh, sizeof(pfh));
+	TRACE("KEVIN - PrintJob() - fJobFile->Read");
+	
+	
 	
 	// read job message
 	fJobMsg = msg = new BMessage();
 	msg->Unflatten(fJobFile);
+	
+	TRACE("KEVIN - PrintJob() - after read job message");
 	// We have to load the settings here for Dano/Zeta because they don't store 
 	// all fields from the message returned by config_job in the job file!
 	PrinterSettings::Read(printerNode, msg, PrinterSettings::kJobSettings);
 	
-	if (msg->HasInt32("copies")) {
+	TRACE("KEVIN - PrintJob() - after reading settings");
+	
+	if (msg->HasInt32("copies")) 
+	{
+		TRACE("KEVIN - PrintJob() - copies");
 		copies = msg->FindInt32("copies");
 	} else {
+		TRACE("KEVIN - PrintJob() - copies else");
 		copies = 1;
 	}
 	
+	TRACE("KEVIN - PrintJob() - before creation of creation of Report object");
 	// force creation of Report object
 	Report::Instance();
 
+	TRACE("KEVIN - PrintJob() - before status window");
 	// show status window
 	StatusWindow* statusWindow = new StatusWindow(passes, pfh.page_count, this);
 
+	TRACE("KEVIN - PrintJob() - begin job");
 	status = BeginJob();
 
 	fPrinting = true;
@@ -170,7 +201,7 @@ PrinterDriver::PrintJob
 
 	// delete Report object
 	Report::Instance()->Free();
-	
+		TRACE("KEVIN - PrintJob() - end");
 	return status;
 }
 
